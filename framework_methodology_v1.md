@@ -1,6 +1,6 @@
 # Ransomware Incident Response and Digital Forensics Investigation Framework
 
-## Framework Methodology — Version 1.0
+## Framework Methodology — Version 2.0
 
 **Authors:** Dharmin Patel, Benjamin Mota, Shamak Patel, Lakshmi Deepak Reddy Narreddy  
 **Date:** March 2026
@@ -9,7 +9,7 @@
 
 ## 1. Framework Overview
 
-This framework provides a structured, repeatable methodology for responding to ransomware incidents and conducting digital forensic investigations within enterprise Windows environments. It synthesizes best practices from NIST SP 800-61 Rev. 3, SANS IR, and NIST SP 800-86 into six actionable stages.
+This framework provides a structured, repeatable methodology for responding to ransomware incidents and conducting digital forensic investigations across **enterprise environments** — including Windows, Linux, macOS, and cloud/hybrid workloads. It synthesizes best practices from NIST SP 800-61 Rev. 3, SANS IR, and NIST SP 800-86 into six actionable stages, enhanced with automation/SOAR integration, threat intelligence, measurable KPIs, and anti-forensics countermeasures.
 
 ### Framework Lifecycle Diagram
 
@@ -54,21 +54,51 @@ This framework provides a structured, repeatable methodology for responding to r
 - Maintain **golden images** for rapid system rebuilds.
 - Enable **immutable backups** and **object versioning** in cloud storage.
 
-### 2.3 Forensic Readiness
+### 2.3 RACI Matrix — Incident Response Roles
+
+| Activity | IR Lead | Forensic Analyst | Comms Lead | Legal Counsel | IT Ops |
+|---|---|---|---|---|---|
+| Declare incident | **R/A** | C | I | I | I |
+| Containment decisions | **R/A** | C | I | C | I |
+| Evidence acquisition | C | **R/A** | — | I | C |
+| Evidence analysis | I | **R/A** | — | I | — |
+| Internal communications | C | — | **R/A** | C | I |
+| External / media comms | I | — | **R/A** | **A** | — |
+| Regulatory notifications | I | C | C | **R/A** | — |
+| Law enforcement liaison | C | C | I | **R/A** | — |
+| System restoration | C | I | — | — | **R/A** |
+| Lessons-learned facilitation | **R/A** | C | C | I | C |
+
+> **R** = Responsible, **A** = Accountable, **C** = Consulted, **I** = Informed
+
+### 2.4 Forensic Readiness
 
 | Readiness Item | Detail |
 |---|---|
-| Forensic toolkit | Pre-stage FTK Imager, Volatility, Autopsy, Wireshark, WinPmem, YARA on a dedicated forensic workstation |
+| Forensic toolkit | Pre-stage FTK Imager, Volatility, Autopsy, Wireshark, WinPmem, LiME, YARA on a dedicated forensic workstation |
 | Evidence storage | Prepare write-once media and encrypted evidence drives with chain-of-custody forms |
-| Log infrastructure | Ensure centralized logging (SIEM) with a minimum 90-day retention for: Windows Event Logs, firewall, DNS, authentication, VPN, and endpoint telemetry |
+| Log infrastructure | Ensure centralized logging (SIEM) with a minimum **90-day retention** for: Windows Event Logs, Linux syslog/journald, macOS Unified Logs, cloud audit trails, firewall, DNS, authentication, VPN, and endpoint telemetry |
 | Network visibility | Deploy network taps / packet capture points at key chokepoints |
+| Cloud logging | Enable AWS CloudTrail, Azure Activity Logs, GCP Audit Logs; ensure immutable log storage with cross-region replication |
 | Training | Conduct annual IR tabletop exercises focused on ransomware scenarios |
 
-### 2.4 Communication Planning
+### 2.5 Communication Planning
 
 - Pre-draft internal and external notification templates.
 - Establish relationships with law enforcement (FBI IC3, CISA), outside counsel, and a retained forensics firm.
 - Define media / public relations protocols.
+
+### 2.6 Automation & SOAR Readiness
+
+Pre-configure automation playbooks to accelerate response:
+
+| Automation | Tool / Platform | Trigger |
+|---|---|---|
+| Auto-isolate endpoint on critical alert | EDR API (CrowdStrike, Defender, SentinelOne) | SIEM alert correlation rule |
+| Auto-capture RAM | Velociraptor hunt / GRR | Ransomware IOC match |
+| Auto-collect artifacts | KAPE (Windows), UAC (Linux/macOS) | IR team manual trigger or SOAR playbook |
+| Auto-block C2 indicators | Firewall API, DNS sinkhole | Threat-intel feed update |
+| Auto-notify IR team | Slack/Teams webhook, PagerDuty | Severity ≥ High alert |
 
 ---
 
@@ -85,15 +115,29 @@ This framework provides a structured, repeatable methodology for responding to r
 | **Network monitoring** | Outbound connections to known C2 domains/IPs; anomalous DNS queries; data exfiltration patterns |
 | **User reports** | Ransom notes on desktops, files with unfamiliar extensions, inability to access data |
 | **Honey files / canary tokens** | Alerts triggered by unauthorized access to decoy files placed in critical directories |
+| **Cloud monitoring** | Unusual API calls (mass S3 deletions, Key Vault access, IAM changes), abnormal data transfer volumes |
 
-### 3.2 Incident Validation and Classification
+### 3.2 Threat Intelligence Integration
+
+Actively correlate observed indicators against threat-intelligence sources **during** triage:
+
+| Intelligence Source | How to Use |
+|---|---|
+| **MITRE ATT&CK** | Map observed TTPs to ATT&CK techniques (e.g., T1486 Data Encrypted for Impact); predict likely next-stage actions |
+| **STIX/TAXII feeds** | Ingest structured IOCs (hashes, domains, IPs) into SIEM/EDR for automated matching |
+| **VirusTotal / Hybrid Analysis** | Submit suspicious hashes and URLs for multi-engine scanning and behavioral reports |
+| **AlienVault OTX / MISP** | Cross-reference community-contributed indicators for ransomware family attribution |
+| **ID Ransomware / No More Ransom** | Upload ransom note or encrypted file sample to identify the ransomware variant and check for available decryptors |
+| **ISACs** | Consume sector-specific alerts (Health-ISAC, FS-ISAC) for targeted threat context |
+
+### 3.3 Incident Validation and Classification
 
 1. **Triage** — Is this a true positive? Correlate alerts across multiple sources.
-2. **Classify** — Determine the ransomware family if possible (check ransom note text, file extension patterns, known IOCs against threat-intel feeds).
+2. **Classify** — Determine the ransomware family if possible (check ransom note text, file extension patterns, known IOCs against threat-intel feeds and ATT&CK).
 3. **Scope** — How many systems are affected? Is encryption still in progress? Is data exfiltration occurring?
 4. **Severity rating** — Assign a severity level (Critical / High / Medium / Low) based on the number of systems, data sensitivity, and business impact.
 
-### 3.3 Initial Documentation
+### 3.4 Initial Documentation
 
 Begin an **Incident Log** that records:
 
@@ -102,6 +146,7 @@ Begin an **Incident Log** that records:
 - Affected systems (hostnames, IPs, users)
 - Initial observations and screenshots
 - All decisions made and by whom
+- ATT&CK technique IDs mapped to observations
 
 ---
 
@@ -113,12 +158,13 @@ Begin an **Incident Log** that records:
 
 #### Short-Term Containment (Minutes to Hours)
 
-| Action | Notes |
-|---|---|
-| Isolate infected hosts | Disconnect from network (disable NIC, pull cable); do NOT power off — volatile evidence will be lost |
-| Block at network boundary | Firewall rules to block known C2 IPs/domains; disable compromised VPN accounts |
-| Disable compromised accounts | Reset credentials for confirmed compromised accounts; force MFA re-enrollment |
-| Quarantine email | Block malicious sender domains and remove phishing emails from all mailboxes |
+| Action | Notes | Automation |
+|---|---|---|
+| Isolate infected hosts | Disconnect from network (disable NIC, pull cable); do NOT power off — volatile evidence will be lost | EDR API: auto-isolate on critical alert |
+| Block at network boundary | Firewall rules to block known C2 IPs/domains; disable compromised VPN accounts | SOAR playbook: auto-block IOCs from threat-intel feed |
+| Disable compromised accounts | Reset credentials for confirmed compromised accounts; force MFA re-enrollment | Identity provider API: auto-disable on confirmed compromise |
+| Quarantine email | Block malicious sender domains and remove phishing emails from all mailboxes | Email gateway API: auto-purge by message ID |
+| Capture volatile evidence | Trigger remote RAM acquisition on isolated hosts before any further action | Velociraptor: auto-collect memory artifact |
 
 #### Long-Term Containment (Hours to Days)
 
@@ -155,25 +201,32 @@ Begin an **Incident Log** that records:
 ### 5.1 Evidence Acquisition Workflow
 
 ```
-┌──────────────────────────────┐
-│  1. VOLATILE EVIDENCE FIRST  │  (RAM, network state, running processes)
-│     Tool: WinPmem, DumpIt    │
-└──────────┬───────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  1. VOLATILE EVIDENCE FIRST  (RAM, network state, running processes)│
+│     Windows: WinPmem, DumpIt                                       │
+│     Linux:   LiME, /proc acquisition                               │
+│     macOS:   osxpmem, MacQuisition                                 │
+│     Cloud:   VM snapshot (preserves memory state)                  │
+└──────────┬───────────────────────────────────────────────────────────┘
            ▼
-┌──────────────────────────────┐
-│  2. DISK IMAGING             │  (Bit-for-bit forensic copy)
-│     Tool: FTK Imager, dd     │
-└──────────┬───────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  2. DISK IMAGING             (Bit-for-bit forensic copy)           │
+│     Windows: FTK Imager, EnCase                                    │
+│     Linux:   dc3dd, ewfacquire                                     │
+│     Cloud:   EBS Snapshot (AWS), Managed Disk Snapshot (Azure)     │
+└──────────┬───────────────────────────────────────────────────────────┘
            ▼
-┌──────────────────────────────┐
-│  3. LOG COLLECTION           │  (SIEM exports, Windows Event Logs, firewall logs)
-│     Tool: Velociraptor, KAPE │
-└──────────┬───────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  3. LOG COLLECTION           (OS logs, SIEM exports, cloud audit)  │
+│     Windows: KAPE, Velociraptor                                    │
+│     Linux:   UAC (Unix-like Artifacts Collector)                   │
+│     Cloud:   CloudTrail, Azure Activity, GCP Audit export          │
+└──────────┬───────────────────────────────────────────────────────────┘
            ▼
-┌──────────────────────────────┐
-│  4. NETWORK CAPTURE          │  (PCAP files from taps / Wireshark)
-│     Tool: Wireshark, tcpdump │
-└──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  4. NETWORK CAPTURE          (PCAP files from taps / Wireshark)    │
+│     Tool: Wireshark, tcpdump, VPC Flow Logs                        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 5.2 Volatile Evidence Analysis
@@ -215,13 +268,77 @@ All evidence must maintain a documented **chain of custody** that includes:
 - Hash values (SHA-256) at time of collection and at each subsequent access
 - Storage location and access log
 
+### 5.6 Anti-Forensics Detection and Countermeasures
+
+Modern attackers actively attempt to destroy forensic evidence. Anticipate and counter these tactics:
+
+| Anti-Forensic Tactic | Detection Method | Countermeasure |
+|---|---|---|
+| **Log clearing** (Event ID 1102) | SIEM alert on audit-log-cleared events | Centralized immutable log storage (write-once SIEM); forward logs in real-time |
+| **Timestomping** | Compare `$STANDARD_INFORMATION` vs `$FILE_NAME` timestamps in MFT — discrepancies indicate tampering | Use MFTECmd or Autopsy MFT analysis; correlate with USN Journal |
+| **Sysmon / EDR service stop** | Monitor for Event ID 1 (process create) targeting Sysmon.exe or EDR processes; Event ID 4689 (process termination) | EDR tamper protection; kernel-level driver protection; alert on service-stop attempts |
+| **Secure deletion / wiping** | Check for known wiping tools (SDelete, cipher /w) in Prefetch, Amcache, or ShimCache | Capture disk images early; use file-carving tools (PhotoRec, Scalpel) to recover wiped data |
+| **Fileless malware** | Memory forensics (Volatility `malfind`) to detect injected code without on-disk artifacts | Prioritize RAM capture; enable PowerShell Script Block Logging (4104) and AMSI logging |
+| **VPN / Tor for C2** | Network forensics — look for encrypted tunnels to unusual ports, Tor exit-node IPs | DNS sinkholing; monitor for known Tor/proxy indicators; SSL/TLS inspection at perimeter |
+
 ---
 
 ## 6. Stage 5 — Post-Incident Activity
 
-**Objective:** Learn from the incident and harden the environment.
+**Objective:** Learn from the incident, measure performance, and harden the environment.
 
-### 6.1 Lessons-Learned Meeting
+### 6.1 Ransomware Negotiation / Payment Decision Framework
+
+> This section addresses the organizational decision of whether to engage with the attacker. **This is not an endorsement of payment** — it is a structured decision process.
+
+```
+                         ┌─────────────────────┐
+                         │  Ransom Demand       │
+                         │  Received            │
+                         └──────────┬──────────┘
+                                    │
+                    ┌───────────────▼───────────────┐
+                    │  1. Notify Law Enforcement     │
+                    │     (FBI IC3, CISA)            │
+                    └───────────────┬───────────────┘
+                                    │
+                    ┌───────────────▼───────────────┐
+                    │  2. Engage Legal Counsel       │
+                    │     - OFAC sanctions check     │
+                    │     - Regulatory obligations   │
+                    └───────────────┬───────────────┘
+                                    │
+                    ┌───────────────▼───────────────┐
+                    │  3. Assess Alternatives         │
+                    │     - Can we restore from       │
+                    │       backups?                  │
+                    │     - Is a free decryptor       │
+                    │       available? (nomoreransom)  │
+                    │     - Can keys be recovered     │
+                    │       from memory forensics?    │
+                    └───────────────┬───────────────┘
+                                    │
+                           ┌────────┴────────┐
+                      YES  │ Alternatives    │ NO
+                     ┌─────┤ Available?      ├─────┐
+                     │     └─────────────────┘     │
+                     ▼                             ▼
+              ┌──────────────┐          ┌──────────────────┐
+              │ DO NOT PAY   │          │ Executive        │
+              │ Restore /    │          │ Decision with    │
+              │ Decrypt      │          │ Legal + Insurance│
+              └──────────────┘          └──────────────────┘
+```
+
+**Key considerations if payment is on the table:**
+
+- Payment **does not guarantee** data recovery
+- Payment **funds criminal operations** and may invite repeat attacks
+- OFAC-sanctioned entities — payment may violate US law
+- Cyber insurance policy terms may influence the decision
+- Document the decision process thoroughly for legal defensibility
+
+### 6.2 Lessons-Learned Meeting
 
 Conduct within **1-2 weeks** of recovery. Agenda:
 
@@ -231,22 +348,40 @@ Conduct within **1-2 weeks** of recovery. Agenda:
 4. Gaps identified in detection, response, and forensics
 5. Recommended improvements (prioritized)
 
-### 6.2 Report Deliverables
+### 6.3 Incident Response Metrics and KPIs
+
+Measure the effectiveness of the framework using quantitative metrics:
+
+| Metric | Definition | Target |
+|---|---|---|
+| **MTTD** (Mean Time to Detect) | Time from initial compromise to first alert | < 24 hours |
+| **MTTC** (Mean Time to Contain) | Time from first alert to full network isolation of affected systems | < 4 hours |
+| **MTTR** (Mean Time to Recover) | Time from containment to full business operations restored | < 72 hours |
+| **Evidence Completeness Rate** | % of expected forensic artifacts successfully collected (RAM, disk, logs, network) | ≥ 95% |
+| **Backup Restoration Success Rate** | % of backup restoration attempts that succeed without data loss | 100% |
+| **Chain-of-Custody Compliance** | % of evidence items with complete, unbroken chain-of-custody documentation | 100% |
+| **ATT&CK Coverage** | % of observed TTPs successfully mapped to ATT&CK techniques | ≥ 90% |
+| **Playbook Adherence** | % of IR playbook steps executed vs. skipped | ≥ 90% |
+
+> Track these metrics per incident and aggregate quarterly to measure framework maturity over time.
+
+### 6.4 Report Deliverables
 
 | Report | Audience | Content |
 |---|---|---|
-| **Executive Summary** | C-Suite, Board | Business impact, timeline, high-level root cause, cost |
-| **Technical Forensic Report** | IT/Security, Legal, Law Enforcement | Detailed evidence analysis, IOCs, attack-path reconstruction, chain-of-custody records |
+| **Executive Summary** | C-Suite, Board | Business impact, timeline, high-level root cause, cost, KPI results |
+| **Technical Forensic Report** | IT/Security, Legal, Law Enforcement | Detailed evidence analysis, IOCs, ATT&CK mapping, attack-path reconstruction, chain-of-custody records |
 | **Compliance Report** | Legal, Regulatory | Breach notification timelines met, data types exposed, remediation steps |
+| **Metrics Report** | CISO, IR Lead | MTTD, MTTC, MTTR, evidence completeness, trend analysis vs. previous incidents |
 
-### 6.3 Improvement Actions
+### 6.5 Improvement Actions
 
 | Area | Actions |
 |---|---|
-| **Detection** | Tune SIEM rules; deploy additional canary tokens; increase log retention |
+| **Detection** | Tune SIEM rules; deploy additional canary tokens; increase log retention; update threat-intel feeds |
 | **Prevention** | Patch management improvements; network segmentation; MFA enforcement |
-| **Response** | Update IR playbook based on lessons learned; schedule additional tabletop exercises |
-| **Forensics** | Update forensic toolkits; add YARA rules for identified ransomware variant; improve evidence-handling SOPs |
+| **Response** | Update IR playbook based on lessons learned; schedule additional tabletop exercises; refine SOAR automation playbooks |
+| **Forensics** | Update forensic toolkits; add YARA rules for identified ransomware variant; improve evidence-handling SOPs; address anti-forensics gaps |
 | **Training** | Targeted security awareness training addressing the initial infection vector (e.g., phishing simulation) |
 
 ---
@@ -300,17 +435,22 @@ Conduct within **1-2 weeks** of recovery. Agenda:
 ## Appendix A: Forensic Readiness Checklist
 
 - [ ] IR policy approved and distributed
+- [ ] RACI matrix defined and communicated to all stakeholders
 - [ ] IR team roles assigned and trained
-- [ ] Forensic workstation provisioned with tools
+- [ ] Forensic workstation provisioned with cross-platform tools
 - [ ] Evidence storage media prepared
 - [ ] Chain-of-custody forms printed and accessible
-- [ ] SIEM deployed with ≥ 90-day log retention
+- [ ] SIEM deployed with ≥ 90-day log retention (on-prem + cloud)
+- [ ] Cloud audit logging enabled (CloudTrail, Azure Activity, GCP Audit)
 - [ ] Backups tested within the last quarter
 - [ ] Immutable / offline backups verified
 - [ ] Golden images updated and stored securely
+- [ ] SOAR playbooks configured and tested
+- [ ] Threat-intel feeds integrated into SIEM/EDR
 - [ ] Tabletop exercise conducted within the last 12 months
 - [ ] External contacts established (legal, law enforcement, forensics firm)
 - [ ] Communication templates drafted
+- [ ] KPI baseline measurements recorded
 
 ## Appendix B: Critical Windows Event IDs for Ransomware Investigation
 
@@ -327,3 +467,75 @@ Conduct within **1-2 weeks** of recovery. Agenda:
 | 4104 | PowerShell | Script block logging (detect malicious PowerShell) |
 | 1116 | Windows Defender | Malware detected |
 | 5156 | Security | Windows Filtering Platform connection allowed |
+
+## Appendix C: Linux and macOS Forensic Artifacts
+
+### Linux Key Artifacts
+
+| Artifact | Location | Forensic Value |
+|---|---|---|
+| Auth logs | `/var/log/auth.log`, `/var/log/secure` | SSH logons, sudo usage, failed authentication |
+| Syslog | `/var/log/syslog`, `/var/log/messages` | System events, service start/stop, kernel messages |
+| Command history | `~/.bash_history`, `~/.zsh_history` | User command activity — lateral movement, data staging |
+| Cron jobs | `/etc/crontab`, `/var/spool/cron/`, `systemd timers` | Persistence mechanisms |
+| Systemd services | `/etc/systemd/system/`, `systemctl list-units` | Malicious service installation |
+| Installed packages | `dpkg -l`, `rpm -qa` | Unauthorized software installation |
+| Process list | `/proc/`, `ps aux` | Running processes at time of capture |
+| Network connections | `ss -tulnp`, `netstat -antp` | Active C2 connections, lateral movement |
+| File integrity | `debsums` (Debian), `rpm -Va` (RHEL) | Detect modified system binaries |
+
+**Memory acquisition tool:** LiME (Linux Memory Extractor)
+
+### macOS Key Artifacts
+
+| Artifact | Location | Forensic Value |
+|---|---|---|
+| Unified Logs | `log show --predicate` or `.logarchive` files | Comprehensive system activity logging |
+| FSEvents | `/.fseventsd/` | File-system change tracking — detect mass encryption |
+| Launch Agents/Daemons | `~/Library/LaunchAgents/`, `/Library/LaunchDaemons/` | Persistence mechanisms |
+| Quarantine events | `~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2` | Downloaded file tracking |
+| Spotlight metadata | `mdls` | File metadata including download source |
+| Keychain | `~/Library/Keychains/` | Stored credentials — potential exfiltration target |
+| KnowledgeC | `~/Library/Application Support/Knowledge/` | Application usage and user activity timeline |
+
+**Memory acquisition tool:** osxpmem, MacQuisition
+
+## Appendix D: Cloud Forensics Reference
+
+### Shared Responsibility Model
+
+| Layer | On-Prem | IaaS | PaaS | SaaS |
+|---|---|---|---|---|
+| Physical evidence | ✅ You | ❌ Provider | ❌ Provider | ❌ Provider |
+| OS / VM evidence | ✅ You | ✅ You | ❌ Provider | ❌ Provider |
+| Application logs | ✅ You | ✅ You | ✅ You | ⚠️ Limited |
+| Audit / API logs | ✅ You | ✅ You | ✅ You | ✅ You |
+| Network flow logs | ✅ You | ✅ You | ⚠️ Limited | ❌ Provider |
+
+### Cloud Evidence Sources by Provider
+
+| Evidence Type | AWS | Azure | GCP |
+|---|---|---|---|
+| API audit trail | CloudTrail | Activity Log | Audit Logs |
+| Network flows | VPC Flow Logs | NSG Flow Logs | VPC Flow Logs |
+| DNS logs | Route 53 Query Logs | DNS Analytics | Cloud DNS Logs |
+| Storage access | S3 Access Logs | Storage Analytics | Cloud Storage Audit |
+| Identity events | IAM Access Analyzer | Entra ID Sign-in Logs | IAM Audit |
+| VM disk snapshot | EBS Snapshot | Managed Disk Snapshot | Persistent Disk Snapshot |
+| VM memory | EC2 memory (via SSM + LiME) | VM Run Command + LiME | Compute SSH + LiME |
+
+### Cloud-Specific Ransomware Scenarios
+
+| Scenario | Evidence to Collect | Key Concern |
+|---|---|---|
+| S3 / Blob encryption | CloudTrail `PutObject`, `DeleteObject` events; bucket versioning history | Check if object versioning was enabled; attacker may delete versions |
+| IAM credential theft | CloudTrail `AssumeRole`, `GetSessionToken`; Entra ID sign-in anomalies | Attacker may create backdoor IAM users/roles |
+| Key Vault / KMS abuse | Key access audit logs; policy change events | Attacker may use your own encryption keys against you |
+| Cross-account pivot | CloudTrail cross-account `AssumeRole` events | Evidence may span multiple accounts and regions |
+
+### Jurisdictional Considerations
+
+- Cloud evidence may reside in **multiple countries** — legal authority to access varies.
+- Coordinate with the cloud provider's **incident response team** via support channels.
+- Issue **legal preservation requests** to prevent automatic log expiration.
+- Document the **data residency** of all collected evidence for chain-of-custody.
