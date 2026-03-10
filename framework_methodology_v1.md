@@ -2,7 +2,7 @@
 
 ## Framework Methodology — Version 1.0
 
-**Authors:** Dharmin Patel, Benjamin Mota, Shamak Patel, Lakshmi Deepak Reddy Narreddy  
+**Authors:** Dharmin Patel, Shamak Patel
 **Date:** March 2026
 
 ---
