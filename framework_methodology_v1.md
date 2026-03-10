@@ -3,6 +3,7 @@
 ## Framework Methodology — Version 1.0
 
 **Authors:** Dharmin Patel, Shamak Patel
+
 **Date:** March 2026
 
 ---
