@@ -6,9 +6,7 @@
 **Title:** Ransomware Incident Response and Digital Forensics Investigation Framework
 **Participants:**
 - Dharmin Patel (patel5d2@mail.uc.edu)
-- Benjamin Mota (motabr@mail.uc.edu)
 - Shamak Patel (patel8sd@mail.uc.edu)
-- Lakshmi Deepak Reddy Narreddy (narredly@mail.uc.edu)
 
 **Primary Objective:** To design and evaluate a structured framework for incident response and digital forensics tailored specifically for ransomware attacks.
 
